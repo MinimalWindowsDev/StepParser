@@ -1,0 +1,10 @@
+.dotnet_home/
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.log
+step_sweep_results.csv
+TestResults/
+.vs/
