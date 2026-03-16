@@ -122,6 +122,37 @@ public sealed class StepFileParser
 
         Token nameToken = Expect(TokenKind.Keyword, "Expected entity name.");
         IReadOnlyList<Parameter> entityParameters = ParseParameterList();
+
+        // Recovery for non-conformant complex entities missing outer parentheses.
+        // ISO 10303-21 §11.3.3 requires: #id = (TYPE1(...) TYPE2(...));
+        // Some files incorrectly write:   #id = TYPE1(...) TYPE2(...);
+        if (Match(TokenKind.Keyword))
+        {
+            StepLogger.Warning(
+                "Entity #{Id}: non-conformant complex instance at {Line}:{Col} — missing outer parentheses " +
+                "(ISO 10303-21 §11.3.3 requires #id=(TYPE1(...)TYPE2(...)...)). Recovering.",
+                id, nameToken.Line, nameToken.Column);
+            _diagnostics.Add(new ParseDiagnostic(
+                DiagnosticSeverity.Warning,
+                nameToken.Line,
+                nameToken.Column,
+                $"Entity #{id}: complex instance missing outer parentheses (non-conformant with ISO 10303-21 §11.3.3). Recovered."));
+
+            List<EntityComponent> components = new()
+            {
+                new EntityComponent(CoerceName(nameToken, "entity component"), entityParameters)
+            };
+            while (Match(TokenKind.Keyword))
+            {
+                Token componentNameToken = Current;
+                Advance();
+                IReadOnlyList<Parameter> componentParameters = ParseParameterList();
+                components.Add(new EntityComponent(CoerceName(componentNameToken, "entity component"), componentParameters));
+            }
+
+            return new EntityInstance(id, null, Array.Empty<Parameter>(), components);
+        }
+
         return new EntityInstance(id, CoerceName(nameToken, "entity name"), entityParameters, null);
     }
 
