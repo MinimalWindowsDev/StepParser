@@ -1,10 +1,60 @@
+# Local build and NuGet cache
 .dotnet_home/
+
+# Build artifacts
 bin/
 obj/
+out/
+*.dll
+*.exe
+*.pdb
+
+# Visual Studio
+.vs/
 *.user
 *.suo
-*.cache
-*.log
-step_sweep_results.csv
+*.sln.iml
+*.userprefs
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+.rider/
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Test results
 TestResults/
-.vs/
+trx/
+*.trx
+
+# Diagnostics and logs
+*.log
+*.cache
+*.stackdump
+diagnostics/
+
+# Local STEP file processing results
+step_sweep_results.csv
+
+# OS-specific
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Local configuration
+appsettings.local.json
+.env
+.env.local
+
+# Temporary files
+*.tmp
+*.temp
+.~*
+
+# User-specific
+.git/info/exclude
