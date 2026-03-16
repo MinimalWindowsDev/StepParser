@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using StepParser.Diagnostics;
 using StepParser.Lexer;
+using StepParser.Logging;
 using StepParser.Output;
 using StepParser.Parser;
 
@@ -8,6 +9,7 @@ namespace StepParser.Cli;
 
 public static class StepParserCli
 {
+    [Log]
     public static int Run(string[] args, TextWriter stdout, TextWriter stderr)
     {
         try
@@ -19,6 +21,25 @@ public static class StepParserCli
 
             Debug.Assert(options is not null);
             string inputPath = Path.GetFullPath(options.InputPath);
+
+            // Configure logging before any work so [Log] aspects are live from here on.
+            string? logFilePath = options.Log
+                ? options.LogFile ?? Path.ChangeExtension(inputPath, ".log")
+                : null;
+            StepLogger.Configure(options.Log, logFilePath);
+
+            if (StepLogger.IsEnabled)
+            {
+                StepLogger.Info("StepParser starting");
+                StepLogger.Info("Input: {InputPath} ({Size})",
+                    inputPath,
+                    File.Exists(inputPath) ? $"{new FileInfo(inputPath).Length / 1024.0:F1} KB" : "not found");
+                StepLogger.Info("Phase: {Phase} | Format: {Format} | Strict: {Strict}",
+                    options.Phase, options.Format, options.Strict);
+                if (logFilePath is not null)
+                    StepLogger.Info("Log file: {LogFile}", logFilePath);
+            }
+
             if (!File.Exists(inputPath))
             {
                 stderr.WriteLine($"Input file not found: {inputPath}");
@@ -166,6 +187,8 @@ public static class StepParserCli
         bool strict = false;
         bool noColor = false;
         bool verbose = false;
+        bool log = false;
+        string? logFile = null;
 
         for (int index = 0; index < args.Length; index++)
         {
@@ -220,6 +243,19 @@ public static class StepParserCli
                 case "--verbose":
                     verbose = true;
                     break;
+                case "--log":
+                    log = true;
+                    break;
+                case "--log-file":
+                    if (!TryReadValue(args, ref index, out logFile))
+                    {
+                        stderr.WriteLine("Missing value for --log-file.");
+                        exitCode = 4;
+                        return false;
+                    }
+
+                    log = true; // --log-file implies --log
+                    break;
                 default:
                     if (argument.StartsWith("-", StringComparison.Ordinal))
                     {
@@ -256,7 +292,9 @@ public static class StepParserCli
             Phase = phase,
             Strict = strict,
             NoColor = noColor,
-            Verbose = verbose
+            Verbose = verbose,
+            Log = log,
+            LogFile = logFile
         };
 
         return true;
@@ -287,6 +325,8 @@ public static class StepParserCli
         writer.WriteLine("  --strict                   Treat warnings as errors");
         writer.WriteLine("  --no-color                 Disable ANSI color in text output");
         writer.WriteLine("  -v, --verbose              Print progress to stderr");
+        writer.WriteLine("  --log                      Enable AOP verbose debug logging (stdout + file)");
+        writer.WriteLine("  --log-file <path>          Log file path (default: <input>.log beside the input file)");
         writer.WriteLine("  -h, --help                 Show help");
         writer.WriteLine("  --version                  Show version");
     }

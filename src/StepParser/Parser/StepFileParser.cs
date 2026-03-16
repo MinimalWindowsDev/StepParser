@@ -1,5 +1,6 @@
 using StepParser.Diagnostics;
 using StepParser.Lexer;
+using StepParser.Logging;
 
 namespace StepParser.Parser;
 
@@ -15,6 +16,7 @@ public sealed class StepFileParser
         _diagnostics = diagnostics;
     }
 
+    [Log]
     public StepFile Parse(string sourcePath)
     {
         Expect(TokenKind.IsoOpen, "Expected ISO-10303-21 opening marker.");
@@ -47,6 +49,7 @@ public sealed class StepFileParser
         return new StepFile(sourcePath, fileInfo.Exists ? fileInfo.Length : 0L, header, entities, edition, schema);
     }
 
+    [Log]
     private HeaderSection ParseHeaderSection()
     {
         List<HeaderEntity> entities = new();
@@ -75,6 +78,7 @@ public sealed class StepFileParser
         return new HeaderSection(entities);
     }
 
+    [Log]
     private Dictionary<int, EntityInstance> ParseDataSection()
     {
         Dictionary<int, EntityInstance> entities = new();
@@ -83,6 +87,9 @@ public sealed class StepFileParser
             Token idToken = Expect(TokenKind.EntityRef, "Expected entity instance identifier.");
             if (!TryGetEntityId(idToken, out int id))
             {
+                StepLogger.Warning(
+                    "Entity ID parse failure at {Line}:{Col} — token kind={Kind} lexeme='{Lexeme}'. Skipping to next statement boundary.",
+                    idToken.Line, idToken.Column, idToken.Kind, idToken.Lexeme);
                 SkipToStatementBoundary();
                 ConsumeOptional(TokenKind.Semicolon);
                 continue;
@@ -181,6 +188,9 @@ public sealed class StepFileParser
                     return new Parameter.TypedValue(typeName, new Parameter.ListValue(parameters));
                 }
 
+                StepLogger.Debug(
+                    "Bare keyword parameter '{Lexeme}' at {Line}:{Col} — treating as enum value.",
+                    token.Lexeme, token.Line, token.Column);
                 _diagnostics.Add(new ParseDiagnostic(
                     DiagnosticSeverity.Warning,
                     token.Line,
@@ -189,6 +199,9 @@ public sealed class StepFileParser
                 return new Parameter.EnumValue(typeName);
             }
             default:
+                StepLogger.Debug(
+                    "Unexpected token {Kind} lexeme='{Lexeme}' at {Line}:{Col} in parameter list.",
+                    token.Kind, token.Lexeme, token.Line, token.Column);
                 _diagnostics.Add(new ParseDiagnostic(
                     DiagnosticSeverity.Error,
                     token.Line,
@@ -208,6 +221,11 @@ public sealed class StepFileParser
         }
 
         id = 0;
+        StepLogger.Debug(
+            "TryGetEntityId FAILED at {Line}:{Col} — token kind={Kind} lexeme='{Lexeme}' value={Value}. " +
+            "Expected a #<number> entity reference. This often indicates a complex-type or subtype expression " +
+            "where the parser expected a simple entity-instance reference.",
+            token.Line, token.Column, token.Kind, token.Lexeme, token.Value?.ToString() ?? "null");
         _diagnostics.Add(new ParseDiagnostic(
             DiagnosticSeverity.Error,
             token.Line,
@@ -292,6 +310,9 @@ public sealed class StepFileParser
             return token;
         }
 
+        StepLogger.Debug(
+            "Expect({Expected}) FAILED at {Line}:{Col} — got kind={Actual} lexeme='{Lexeme}' | {Message}",
+            kind, token.Line, token.Column, token.Kind, token.Lexeme, message);
         _diagnostics.Add(new ParseDiagnostic(
             DiagnosticSeverity.Error,
             token.Line,

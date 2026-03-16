@@ -1,11 +1,13 @@
 using System.Globalization;
 using System.Text;
 using StepParser.Diagnostics;
+using StepParser.Logging;
 
 namespace StepParser.Lexer;
 
 public static class Lexer
 {
+    [Log]
     public static IReadOnlyList<Token> Lex(IReadOnlyList<RawToken> rawTokens, ICollection<ParseDiagnostic> diagnostics)
     {
         List<Token> tokens = new(rawTokens.Count);

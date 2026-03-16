@@ -8,4 +8,18 @@
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Fody: build-time IL weaver only, not a runtime dep -->
+    <PackageReference Include="Fody" Version="6.9.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <!-- MethodBoundaryAspect: provides both the weaver AND the runtime base classes -->
+    <PackageReference Include="MethodBoundaryAspect.Fody" Version="2.0.150" />
+    <!-- Serilog: structured logging backend -->
+    <PackageReference Include="Serilog" Version="4.3.1" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="5.0.1" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+  </ItemGroup>
+
 </Project>

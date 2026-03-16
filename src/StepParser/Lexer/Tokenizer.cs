@@ -1,16 +1,19 @@
 using System.Text;
 using StepParser.Diagnostics;
+using StepParser.Logging;
 
 namespace StepParser.Lexer;
 
 public static class Tokenizer
 {
+    [Log]
     public static IReadOnlyList<RawToken> TokenizeFile(string path, ICollection<ParseDiagnostic> diagnostics)
     {
         using StreamReader reader = new(path, Encoding.UTF8, true);
         return Tokenize(reader, diagnostics);
     }
 
+    [Log]
     public static IReadOnlyList<RawToken> Tokenize(TextReader reader, ICollection<ParseDiagnostic> diagnostics)
     {
         string text = reader.ReadToEnd();
