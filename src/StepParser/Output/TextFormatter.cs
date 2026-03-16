@@ -1,4 +1,5 @@
 using System.Text;
+using StepParser.Diagnostics;
 using StepParser.Parser;
 
 namespace StepParser.Output;
@@ -35,12 +36,47 @@ public sealed class TextFormatter : IOutputFormatter
         builder.AppendLine($"Schema: {parse.Schema ?? "<unknown>"}");
         builder.AppendLine($"Edition: {parse.Edition?.ToString() ?? "<unknown>"}");
         builder.AppendLine($"Entities: {parse.Stats.EntityCount}");
-        builder.AppendLine($"Diagnostics: {parse.Diagnostics.Count}");
 
-        foreach (var diagnostic in parse.Diagnostics.Take(20))
+        int errorCount = parse.Diagnostics.Count(d => d.Severity == Diagnostics.DiagnosticSeverity.Error);
+        int warnCount = parse.Diagnostics.Count(d => d.Severity == Diagnostics.DiagnosticSeverity.Warning);
+        if (errorCount > 0 && warnCount > 0)
+        {
+            builder.AppendLine($"Errors: {errorCount} | Warnings: {warnCount}");
+        }
+        else if (errorCount > 0)
+        {
+            builder.AppendLine($"Errors: {errorCount}");
+        }
+        else if (warnCount > 0)
+        {
+            builder.AppendLine($"Warnings: {warnCount}");
+        }
+        else
+        {
+            builder.AppendLine("Diagnostics: 0");
+        }
+
+        foreach (ParseDiagnostic diagnostic in parse.Diagnostics)
         {
             builder.AppendLine(
-                $"{SeverityPrefix(diagnostic.Severity)} {diagnostic.Line}:{diagnostic.Column} {diagnostic.Message}");
+                $"  {SeverityPrefix(diagnostic.Severity)} {diagnostic.Line}:{diagnostic.Column} {diagnostic.Message}");
+        }
+
+        if (parse.Stats.EntityTypes.Count > 0)
+        {
+            builder.AppendLine("Entity types:");
+            foreach (KeyValuePair<string, int> pair in parse.Stats.EntityTypes
+                         .OrderByDescending(pair => pair.Value)
+                         .ThenBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
+                         .Take(20))
+            {
+                builder.AppendLine($"  {pair.Key}: {pair.Value}");
+            }
+
+            if (parse.Stats.EntityTypes.Count > 20)
+            {
+                builder.AppendLine($"  … and {parse.Stats.EntityTypes.Count - 20} more type(s)");
+            }
         }
 
         return builder.ToString().TrimEnd();

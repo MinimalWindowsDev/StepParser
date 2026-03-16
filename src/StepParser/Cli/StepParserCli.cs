@@ -135,6 +135,8 @@ public static class StepParserCli
 
         if (options.Strict && hasWarnings)
         {
+            int warnCount = diagnostics.Count(d => d.Severity == DiagnosticSeverity.Warning);
+            stderr.WriteLine($"strict: {warnCount} warning(s) promoted to error(s) — exit 2");
             return 2;
         }
 
