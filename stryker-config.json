@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-net/master/src/Stryker.Core/Stryker.Core/Schemas/stryker-config.json",
+  "stryker-config": {
+    "project": "StepParser.csproj",
+    "test-projects": [
+      "tests/StepParser.Tests/StepParser.Tests.csproj"
+    ],
+    "reporters": [
+      "progress",
+      "html",
+      "json"
+    ],
+    "thresholds": {
+      "high": 90,
+      "low": 80,
+      "break": 80
+    },
+    "mutation-level": "Standard",
+    "coverage-analysis": "perTest"
+  }
+}

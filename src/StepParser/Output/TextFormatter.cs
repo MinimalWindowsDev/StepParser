@@ -62,6 +62,22 @@ public sealed class TextFormatter : IOutputFormatter
                 $"  {SeverityPrefix(diagnostic.Severity)} {diagnostic.Line}:{diagnostic.Column} {diagnostic.Message}");
         }
 
+        builder.AppendLine(
+            $"AP242: {(parse.Semantics.IsAp242 ? "yes" : "no")} | MBD: {(parse.Semantics.HasModelBasedDefinition ? "yes" : "no")} | " +
+            $"PMI: {parse.Semantics.CategoryCounts.GetValueOrDefault("pmi")} | GD&T: {parse.Semantics.CategoryCounts.GetValueOrDefault("gdt")}");
+
+        foreach (PmiDimensionSummary dimension in parse.Semantics.Dimensions)
+        {
+            builder.AppendLine(
+                $"  DIM #{dimension.Id} {dimension.Name ?? "<unnamed>"} nominal={Render(dimension.NominalValue)} " +
+                $"upper={Render(dimension.UpperTolerance)} lower={Render(dimension.LowerTolerance)}");
+        }
+
+        foreach (DatumSummary datum in parse.Semantics.Datums)
+        {
+            builder.AppendLine($"  DATUM #{datum.Id} {datum.Label ?? "<unlabelled>"}");
+        }
+
         if (parse.Stats.EntityTypes.Count > 0)
         {
             builder.AppendLine("Entity types:");
@@ -80,6 +96,11 @@ public sealed class TextFormatter : IOutputFormatter
         }
 
         return builder.ToString().TrimEnd();
+    }
+
+    private static string Render(double? value)
+    {
+        return value?.ToString("G", System.Globalization.CultureInfo.InvariantCulture) ?? "<none>";
     }
 
     private string SeverityPrefix(Diagnostics.DiagnosticSeverity severity)

@@ -30,6 +30,15 @@ TestResults/
 trx/
 *.trx
 
+# Coverage and mutation-testing output
+coverage.cobertura.xml
+coverage.json
+StrykerOutput/
+
+# Golden-corpus rejects: written next to the fixture when a snapshot mismatches, so the actual
+# output can be diffed by hand. The blessed *.expected.json files ARE tracked.
+tests/StepParser.Tests/Fixtures/*.actual.json
+
 # Diagnostics and logs
 *.log
 *.cache

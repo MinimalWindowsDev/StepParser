@@ -9,6 +9,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>StepParser.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Fody: build-time IL weaver only, not a runtime dep -->
     <PackageReference Include="Fody" Version="6.9.3">
       <PrivateAssets>all</PrivateAssets>

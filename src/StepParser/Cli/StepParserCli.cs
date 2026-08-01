@@ -9,11 +9,34 @@ namespace StepParser.Cli;
 
 public static class StepParserCli
 {
-    [Log]
     public static int Run(string[] args, TextWriter stdout, TextWriter stderr)
+    {
+        return Run(args, TextReader.Null, stdout, stderr);
+    }
+
+    [Log]
+    public static int Run(string[] args, TextReader stdin, TextWriter stdout, TextWriter stderr)
     {
         try
         {
+            // --sweep short-circuits the single-file pipeline: it reads a path list from stdin and
+            // re-enters Run once per file, so it must be handled before ordinary argument parsing.
+            // It is matched anywhere in argv, not just at position 0 — a documented flag that only
+            // works in one position is indistinguishable from an unknown one to the user.
+            int sweepIndex = Array.FindIndex(
+                args,
+                argument => string.Equals(argument, "--sweep", StringComparison.OrdinalIgnoreCase));
+            if (sweepIndex >= 0)
+            {
+                if (sweepIndex + 1 >= args.Length || string.IsNullOrWhiteSpace(args[sweepIndex + 1]))
+                {
+                    stderr.WriteLine("Missing CSV path for --sweep.");
+                    return 4;
+                }
+
+                return SweepRunner.Run(stdin, stdout, Path.GetFullPath(args[sweepIndex + 1]));
+            }
+
             if (!TryParseArguments(args, stdout, stderr, out CliOptions? options, out int argumentExitCode))
             {
                 return argumentExitCode;
@@ -331,5 +354,8 @@ public static class StepParserCli
         writer.WriteLine("  --log-file <path>          Log file path (default: <input>.log beside the input file)");
         writer.WriteLine("  -h, --help                 Show help");
         writer.WriteLine("  --version                  Show version");
+        writer.WriteLine();
+        writer.WriteLine("Corpus sweep:");
+        writer.WriteLine("  --sweep <csv>              Parse every path read from stdin; write per-file results to <csv>");
     }
 }

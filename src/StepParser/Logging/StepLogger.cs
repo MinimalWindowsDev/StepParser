@@ -24,6 +24,12 @@ public static class StepLogger
     /// </param>
     public static void Configure(bool enabled, string? logFilePath)
     {
+        // Dispose any previous logger first: Serilog's file sink holds an exclusive handle on the
+        // log file until it is disposed, so reconfiguring without this leaks both the handle and
+        // any buffered lines that have not reached disk yet.
+        (_instance as IDisposable)?.Dispose();
+        _instance = null;
+
         _enabled = enabled;
         if (!enabled) return;
 
@@ -44,6 +50,12 @@ public static class StepLogger
 
         _instance = config.CreateLogger();
     }
+
+    /// <summary>
+    /// Flush buffered log events and release the log file. The file sink batches writes, so a
+    /// process that exits without calling this can lose its last lines.
+    /// </summary>
+    public static void CloseAndFlush() => Configure(false, null);
 
     // ── Structured log methods ──────────────────────────────────────────────
 

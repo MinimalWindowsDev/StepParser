@@ -1,0 +1,119 @@
+{
+  "edition": 2,
+  "schema": "AUTOMOTIVE_DESIGN { 1 0 10303 214 2 1 1}",
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "line": 8,
+      "col": 4,
+      "message": "Entity #1: complex instance missing outer parentheses (non-conformant with ISO 10303-21 \u00A711.3.3). Recovered."
+    },
+    {
+      "severity": "warning",
+      "line": 9,
+      "col": 4,
+      "message": "Entity #2: complex instance missing outer parentheses (non-conformant with ISO 10303-21 \u00A711.3.3). Recovered."
+    }
+  ],
+  "header": {
+    "fileDescription": [
+      "Complex instances written without the outer parentheses"
+    ],
+    "implementationLevel": "2;1",
+    "name": "nonconformant",
+    "timeStamp": "2026-08-01T00:00:00",
+    "authors": [
+      "StepParser"
+    ],
+    "organizations": [
+      "none"
+    ],
+    "preprocessorVersion": " ",
+    "originatingSystem": "fixture",
+    "authorization": " ",
+    "schemas": [
+      "AUTOMOTIVE_DESIGN { 1 0 10303 214 2 1 1}"
+    ]
+  },
+  "stats": {
+    "entityCount": 3,
+    "entityTypes": {
+      "LENGTH_UNIT": 1,
+      "NAMED_UNIT": 2,
+      "SI_UNIT": 2,
+      "PLANE_ANGLE_UNIT": 1,
+      "CARTESIAN_POINT": 1
+    }
+  },
+  "semantics": {
+    "isAp242": false,
+    "hasModelBasedDefinition": false,
+    "hasPmi": false,
+    "hasGdt": false,
+    "categoryCounts": {
+      "representation": 0,
+      "geometry": 0,
+      "pmi": 0,
+      "gdt": 0
+    },
+    "dimensions": [],
+    "datums": [],
+    "detectedEntityTypes": [
+      "CARTESIAN_POINT",
+      "LENGTH_UNIT",
+      "NAMED_UNIT",
+      "PLANE_ANGLE_UNIT",
+      "SI_UNIT"
+    ]
+  },
+  "entities": [
+    {
+      "id": 1,
+      "type": "complex",
+      "params": [],
+      "names": [
+        "LENGTH_UNIT",
+        "NAMED_UNIT",
+        "SI_UNIT"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "complex",
+      "params": [],
+      "names": [
+        "PLANE_ANGLE_UNIT",
+        "NAMED_UNIT",
+        "SI_UNIT"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "simple",
+      "name": "CARTESIAN_POINT",
+      "params": [
+        {
+          "kind": "string",
+          "value": "origin"
+        },
+        {
+          "kind": "list",
+          "items": [
+            {
+              "kind": "real",
+              "value": 0
+            },
+            {
+              "kind": "real",
+              "value": 0
+            },
+            {
+              "kind": "real",
+              "value": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

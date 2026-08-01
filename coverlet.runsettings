@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura,json</Format>
+          <!-- Measure the product only. Including the test assembly would inflate the number with
+               test code, which is the classic way a coverage figure stops meaning anything. -->
+          <Include>[StepParser]*</Include>
+          <ExcludeByAttribute>CompilerGeneratedAttribute,GeneratedCodeAttribute</ExcludeByAttribute>
+          <SkipAutoProps>true</SkipAutoProps>
+          <DeterministicReport>false</DeterministicReport>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

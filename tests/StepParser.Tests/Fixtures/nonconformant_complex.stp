@@ -1,0 +1,12 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('Complex instances written without the outer parentheses'),'2;1');
+FILE_NAME('nonconformant','2026-08-01T00:00:00',('StepParser'),('none'),' ','fixture',' ');
+FILE_SCHEMA(('AUTOMOTIVE_DESIGN { 1 0 10303 214 2 1 1}'));
+ENDSEC;
+DATA;
+#1=LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MILLI.,.METRE.);
+#2=PLANE_ANGLE_UNIT() NAMED_UNIT(*) SI_UNIT($,.RADIAN.);
+#3=CARTESIAN_POINT('origin',(0.,0.,0.));
+ENDSEC;
+END-ISO-10303-21;

@@ -9,6 +9,7 @@ public sealed record ParseResult(
     string? Schema,
     HeaderSummary Header,
     StatsSummary Stats,
+    Ap242SemanticSummary Semantics,
     IReadOnlyList<EntitySummary> Entities,
     IReadOnlyList<ParseDiagnostic> Diagnostics,
     TimeSpan Elapsed)
@@ -46,6 +47,7 @@ public sealed record ParseResult(
             stepFile.FileSchema,
             HeaderSummary.FromSection(stepFile.Header),
             new StatsSummary(stepFile.Data.Count, entityTypes),
+            Ap242SemanticModelBuilder.Build(stepFile),
             entities,
             diagnostics.ToArray(),
             elapsed);
@@ -156,6 +158,32 @@ internal static class ParseResultJsonProjection
             {
                 entityCount = result.Stats.EntityCount,
                 entityTypes = result.Stats.EntityTypes
+            },
+            semantics = new
+            {
+                isAp242 = result.Semantics.IsAp242,
+                hasModelBasedDefinition = result.Semantics.HasModelBasedDefinition,
+                hasPmi = result.Semantics.HasPmi,
+                hasGdt = result.Semantics.HasGdt,
+                categoryCounts = result.Semantics.CategoryCounts,
+                dimensions = result.Semantics.Dimensions.Select(dimension => new
+                {
+                    id = dimension.Id,
+                    entityType = dimension.EntityType,
+                    name = dimension.Name,
+                    targetAspectId = dimension.TargetAspectId,
+                    nominalValue = dimension.NominalValue,
+                    upperTolerance = dimension.UpperTolerance,
+                    lowerTolerance = dimension.LowerTolerance
+                }),
+                datums = result.Semantics.Datums.Select(datum => new
+                {
+                    id = datum.Id,
+                    label = datum.Label,
+                    description = datum.Description,
+                    targetEntityId = datum.TargetEntityId
+                }),
+                detectedEntityTypes = result.Semantics.DetectedEntityTypes
             },
             entities = result.Entities.Select(entity => new
             {

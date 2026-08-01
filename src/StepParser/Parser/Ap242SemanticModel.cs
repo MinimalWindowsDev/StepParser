@@ -25,8 +25,13 @@ public sealed record DatumSummary(
     string? Description,
     int? TargetEntityId);
 
-internal static class Ap242SemanticModelBuilder
+public static class Ap242SemanticModelBuilder
 {
+    // Stryker disable all : the blocks below are reference data, not logic. Mutating ~600 entity-name
+    // string literals produces mutants that no reasonable test suite can kill (a test would have to
+    // exist per catalogued name), which would bury the mutation score of the code that does have
+    // behaviour. Build() and its helpers below the "restore" marker ARE mutated.
+
     // -------------------------------------------------------------------------
     // Module 1 — Geometry
     // Curves, surfaces, points, placements and supporting geometry entities
@@ -942,6 +947,8 @@ internal static class Ap242SemanticModelBuilder
         "TOLERANCE_VALUE",
     };
 
+    // Stryker restore all
+
     public static Ap242SemanticSummary Build(StepFile stepFile)
     {
         Dictionary<string, int> categoryCounts = new(StringComparer.OrdinalIgnoreCase)
@@ -1069,7 +1076,9 @@ internal static class Ap242SemanticModelBuilder
 
         return new PmiDimensionSummary(
             entity.Id,
-            entity.Name ?? "DIMENSIONAL_SIZE",
+            // Build only calls this for entities whose Name is already "DIMENSIONAL_SIZE", so a
+            // null-coalescing fallback here would be permanently dead.
+            entity.Name!,
             name,
             targetAspectId,
             nominalValue,

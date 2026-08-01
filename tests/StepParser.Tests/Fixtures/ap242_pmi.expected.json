@@ -1,0 +1,362 @@
+{
+  "edition": 3,
+  "schema": "AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF { 1 0 10303 442 1 1 4 }",
+  "diagnostics": [],
+  "header": {
+    "fileDescription": [
+      "AP242 PMI fixture"
+    ],
+    "implementationLevel": "3;1",
+    "name": "pmi",
+    "timeStamp": "2026-08-01T00:00:00",
+    "authors": [
+      "StepParser"
+    ],
+    "organizations": [
+      "none"
+    ],
+    "preprocessorVersion": " ",
+    "originatingSystem": "fixture",
+    "authorization": " ",
+    "schemas": [
+      "AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF { 1 0 10303 442 1 1 4 }"
+    ]
+  },
+  "stats": {
+    "entityCount": 15,
+    "entityTypes": {
+      "ADVANCED_FACE": 1,
+      "DIMENSIONAL_SIZE": 1,
+      "MEASURE_WITH_UNIT": 1,
+      "DATUM": 1,
+      "FLATNESS_TOLERANCE": 1,
+      "GEOMETRIC_REPRESENTATION_CONTEXT": 1,
+      "LENGTH_UNIT": 2,
+      "NAMED_UNIT": 1,
+      "SI_UNIT": 1,
+      "SHAPE_ASPECT": 1,
+      "PLANE": 1,
+      "AXIS2_PLACEMENT_3D": 1,
+      "CARTESIAN_POINT": 1,
+      "LENGTH_MEASURE_WITH_UNIT": 1,
+      "FACE_OUTER_BOUND": 1,
+      "EDGE_LOOP": 1
+    }
+  },
+  "semantics": {
+    "isAp242": true,
+    "hasModelBasedDefinition": true,
+    "hasPmi": true,
+    "hasGdt": true,
+    "categoryCounts": {
+      "representation": 1,
+      "geometry": 2,
+      "pmi": 4,
+      "gdt": 3
+    },
+    "dimensions": [
+      {
+        "id": 2,
+        "entityType": "DIMENSIONAL_SIZE",
+        "name": "overall width",
+        "targetAspectId": 10,
+        "nominalValue": 25
+      }
+    ],
+    "datums": [
+      {
+        "id": 4,
+        "label": "A",
+        "description": "primary datum",
+        "targetEntityId": 10
+      }
+    ],
+    "detectedEntityTypes": [
+      "ADVANCED_FACE",
+      "AXIS2_PLACEMENT_3D",
+      "CARTESIAN_POINT",
+      "DATUM",
+      "DIMENSIONAL_SIZE",
+      "EDGE_LOOP",
+      "FACE_OUTER_BOUND",
+      "FLATNESS_TOLERANCE",
+      "GEOMETRIC_REPRESENTATION_CONTEXT",
+      "LENGTH_MEASURE_WITH_UNIT",
+      "LENGTH_UNIT",
+      "MEASURE_WITH_UNIT",
+      "NAMED_UNIT",
+      "PLANE",
+      "SHAPE_ASPECT",
+      "SI_UNIT"
+    ]
+  },
+  "entities": [
+    {
+      "id": 1,
+      "type": "simple",
+      "name": "ADVANCED_FACE",
+      "params": [
+        {
+          "kind": "string",
+          "value": "face"
+        },
+        {
+          "kind": "list",
+          "items": [
+            {
+              "kind": "entityRef",
+              "id": 50
+            }
+          ]
+        },
+        {
+          "kind": "entityRef",
+          "id": 20
+        },
+        {
+          "kind": "enum",
+          "value": "T"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "simple",
+      "name": "DIMENSIONAL_SIZE",
+      "params": [
+        {
+          "kind": "entityRef",
+          "id": 10
+        },
+        {
+          "kind": "string",
+          "value": "overall width"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "simple",
+      "name": "MEASURE_WITH_UNIT",
+      "params": [
+        {
+          "kind": "typed",
+          "type": "LENGTH_MEASURE",
+          "inner": {
+            "kind": "real",
+            "value": 25
+          }
+        },
+        {
+          "kind": "entityRef",
+          "id": 30
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "simple",
+      "name": "DATUM",
+      "params": [
+        {
+          "kind": "string",
+          "value": "A"
+        },
+        {
+          "kind": "string",
+          "value": "primary datum"
+        },
+        {
+          "kind": "entityRef",
+          "id": 10
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "simple",
+      "name": "FLATNESS_TOLERANCE",
+      "params": [
+        {
+          "kind": "string",
+          "value": "flat"
+        },
+        {
+          "kind": "string",
+          "value": ""
+        },
+        {
+          "kind": "entityRef",
+          "id": 40
+        },
+        {
+          "kind": "entityRef",
+          "id": 10
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "simple",
+      "name": "GEOMETRIC_REPRESENTATION_CONTEXT",
+      "params": [
+        {
+          "kind": "integer",
+          "value": 3
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "complex",
+      "params": [],
+      "names": [
+        "LENGTH_UNIT",
+        "NAMED_UNIT",
+        "SI_UNIT"
+      ]
+    },
+    {
+      "id": 10,
+      "type": "simple",
+      "name": "SHAPE_ASPECT",
+      "params": [
+        {
+          "kind": "string",
+          "value": "aspect"
+        },
+        {
+          "kind": "string",
+          "value": ""
+        },
+        {
+          "kind": "entityRef",
+          "id": 6
+        },
+        {
+          "kind": "enum",
+          "value": "T"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "type": "simple",
+      "name": "PLANE",
+      "params": [
+        {
+          "kind": "string",
+          "value": "p"
+        },
+        {
+          "kind": "entityRef",
+          "id": 21
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "type": "simple",
+      "name": "AXIS2_PLACEMENT_3D",
+      "params": [
+        {
+          "kind": "string",
+          "value": ""
+        },
+        {
+          "kind": "entityRef",
+          "id": 22
+        },
+        {
+          "kind": "unset"
+        },
+        {
+          "kind": "unset"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "type": "simple",
+      "name": "CARTESIAN_POINT",
+      "params": [
+        {
+          "kind": "string",
+          "value": ""
+        },
+        {
+          "kind": "list",
+          "items": [
+            {
+              "kind": "real",
+              "value": 0
+            },
+            {
+              "kind": "real",
+              "value": 0
+            },
+            {
+              "kind": "real",
+              "value": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "type": "simple",
+      "name": "LENGTH_UNIT",
+      "params": []
+    },
+    {
+      "id": 40,
+      "type": "simple",
+      "name": "LENGTH_MEASURE_WITH_UNIT",
+      "params": [
+        {
+          "kind": "typed",
+          "type": "LENGTH_MEASURE",
+          "inner": {
+            "kind": "real",
+            "value": 0.1
+          }
+        },
+        {
+          "kind": "entityRef",
+          "id": 30
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "type": "simple",
+      "name": "FACE_OUTER_BOUND",
+      "params": [
+        {
+          "kind": "entityRef",
+          "id": 51
+        },
+        {
+          "kind": "enum",
+          "value": "T"
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "type": "simple",
+      "name": "EDGE_LOOP",
+      "params": [
+        {
+          "kind": "string",
+          "value": ""
+        },
+        {
+          "kind": "list",
+          "items": []
+        }
+      ]
+    }
+  ]
+}

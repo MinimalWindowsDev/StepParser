@@ -1,0 +1,287 @@
+{
+  "edition": 2,
+  "schema": "AUTOMOTIVE_DESIGN { 1 0 10303 214 2 1 1}",
+  "diagnostics": [],
+  "header": {
+    "fileDescription": [
+      "A minimal AP214 example"
+    ],
+    "implementationLevel": "2;1",
+    "name": "demo",
+    "timeStamp": "2003-12-27T11:57:53",
+    "authors": [
+      "Lothar Klein"
+    ],
+    "organizations": [
+      "LKSoft"
+    ],
+    "preprocessorVersion": " ",
+    "originatingSystem": "IDA-STEP",
+    "authorization": " ",
+    "schemas": [
+      "AUTOMOTIVE_DESIGN { 1 0 10303 214 2 1 1}"
+    ]
+  },
+  "stats": {
+    "entityCount": 11,
+    "entityTypes": {
+      "ORGANIZATION": 1,
+      "PRODUCT_DEFINITION_CONTEXT": 1,
+      "APPLICATION_CONTEXT": 1,
+      "APPLICATION_PROTOCOL_DEFINITION": 1,
+      "PRODUCT_DEFINITION": 1,
+      "PRODUCT_DEFINITION_FORMATION": 1,
+      "PRODUCT": 1,
+      "PRODUCT_RELATED_PRODUCT_CATEGORY": 1,
+      "PRODUCT_CONTEXT": 1,
+      "APPLIED_ORGANIZATION_ASSIGNMENT": 1,
+      "ORGANIZATION_ROLE": 1
+    }
+  },
+  "semantics": {
+    "isAp242": false,
+    "hasModelBasedDefinition": false,
+    "hasPmi": false,
+    "hasGdt": false,
+    "categoryCounts": {
+      "representation": 3,
+      "geometry": 0,
+      "pmi": 0,
+      "gdt": 0
+    },
+    "dimensions": [],
+    "datums": [],
+    "detectedEntityTypes": [
+      "APPLICATION_CONTEXT",
+      "APPLICATION_PROTOCOL_DEFINITION",
+      "APPLIED_ORGANIZATION_ASSIGNMENT",
+      "ORGANIZATION",
+      "ORGANIZATION_ROLE",
+      "PRODUCT",
+      "PRODUCT_CONTEXT",
+      "PRODUCT_DEFINITION",
+      "PRODUCT_DEFINITION_CONTEXT",
+      "PRODUCT_DEFINITION_FORMATION",
+      "PRODUCT_RELATED_PRODUCT_CATEGORY"
+    ]
+  },
+  "entities": [
+    {
+      "id": 10,
+      "type": "simple",
+      "name": "ORGANIZATION",
+      "params": [
+        {
+          "kind": "string",
+          "value": "O0001"
+        },
+        {
+          "kind": "string",
+          "value": "LKSoft"
+        },
+        {
+          "kind": "string",
+          "value": "company"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "simple",
+      "name": "PRODUCT_DEFINITION_CONTEXT",
+      "params": [
+        {
+          "kind": "string",
+          "value": "part definition"
+        },
+        {
+          "kind": "entityRef",
+          "id": 12
+        },
+        {
+          "kind": "string",
+          "value": "manufacturing"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "simple",
+      "name": "APPLICATION_CONTEXT",
+      "params": [
+        {
+          "kind": "string",
+          "value": "mechanical design"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "simple",
+      "name": "APPLICATION_PROTOCOL_DEFINITION",
+      "params": [
+        {
+          "kind": "string",
+          "value": ""
+        },
+        {
+          "kind": "string",
+          "value": "automotive_design"
+        },
+        {
+          "kind": "integer",
+          "value": 2003
+        },
+        {
+          "kind": "entityRef",
+          "id": 12
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "simple",
+      "name": "PRODUCT_DEFINITION",
+      "params": [
+        {
+          "kind": "string",
+          "value": "0"
+        },
+        {
+          "kind": "unset"
+        },
+        {
+          "kind": "entityRef",
+          "id": 15
+        },
+        {
+          "kind": "entityRef",
+          "id": 11
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "type": "simple",
+      "name": "PRODUCT_DEFINITION_FORMATION",
+      "params": [
+        {
+          "kind": "string",
+          "value": "1"
+        },
+        {
+          "kind": "unset"
+        },
+        {
+          "kind": "entityRef",
+          "id": 16
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "type": "simple",
+      "name": "PRODUCT",
+      "params": [
+        {
+          "kind": "string",
+          "value": "A0001"
+        },
+        {
+          "kind": "string",
+          "value": "Test Part 1"
+        },
+        {
+          "kind": "string",
+          "value": ""
+        },
+        {
+          "kind": "list",
+          "items": [
+            {
+              "kind": "entityRef",
+              "id": 18
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "type": "simple",
+      "name": "PRODUCT_RELATED_PRODUCT_CATEGORY",
+      "params": [
+        {
+          "kind": "string",
+          "value": "part"
+        },
+        {
+          "kind": "unset"
+        },
+        {
+          "kind": "list",
+          "items": [
+            {
+              "kind": "entityRef",
+              "id": 16
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "type": "simple",
+      "name": "PRODUCT_CONTEXT",
+      "params": [
+        {
+          "kind": "string",
+          "value": ""
+        },
+        {
+          "kind": "entityRef",
+          "id": 12
+        },
+        {
+          "kind": "string",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "type": "simple",
+      "name": "APPLIED_ORGANIZATION_ASSIGNMENT",
+      "params": [
+        {
+          "kind": "entityRef",
+          "id": 10
+        },
+        {
+          "kind": "entityRef",
+          "id": 20
+        },
+        {
+          "kind": "list",
+          "items": [
+            {
+              "kind": "entityRef",
+              "id": 16
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "type": "simple",
+      "name": "ORGANIZATION_ROLE",
+      "params": [
+        {
+          "kind": "string",
+          "value": "id owner"
+        }
+      ]
+    }
+  ]
+}

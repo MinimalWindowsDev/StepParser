@@ -4,189 +4,218 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**StepParser** is a C# CLI tool for parsing ISO 10303-21 (STEP) files—a standard format for exchanging 3D product design data. The current scope covers an MVP tokenizer, lexer, parser, and AP242-oriented semantic layer for extracting header/schema information and identifying PMI/MBD-related entities.
+**StepParser** is a C# CLI that tokenizes, lexes, and parses ISO 10303-21 (STEP Part 21) clear-text
+files, with an AP242 (ISO 10303-242, Managed Model-Based 3D Engineering) entity catalog for
+classifying PMI/MBD content. It is consumed as a git submodule by the parent `MBDInspector`
+solution.
 
-The parser is intentionally zero-dependency and offline-first, designed to work in offline environments without NuGet restore.
+## Build, Test, Run
 
-## Build & Run Commands
+Every command needs these two environment variables first — the repo keeps its NuGet packages in a
+repo-local `.dotnet_home/` (gitignored) rather than the user profile cache:
 
-All commands should set `DOTNET_CLI_HOME` and `DOTNET_SKIP_FIRST_TIME_EXPERIENCE` environment variables for offline compatibility.
-
-### Build
 ```powershell
 $env:DOTNET_CLI_HOME="$PWD\.dotnet_home"
 $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE="1"
-dotnet build StepParser.slnx --ignore-failed-sources
 ```
 
-### Run CLI
 ```powershell
-$env:DOTNET_CLI_HOME="$PWD\.dotnet_home"
-$env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE="1"
+dotnet build StepParser.slnx --ignore-failed-sources
+dotnet test StepParser.slnx
+dotnet test StepParser.slnx --filter "FullyQualifiedName~ParsesMinimalSample"   # one test
 dotnet run --project src/StepParser/StepParser.csproj -c Debug --no-build -- --phase parse .\sample.stp
 ```
 
-**CLI Options:**
-- `--phase tokens|lex|parse` — execution phase (default: parse)
-- `--format json|text` — output format (default: json)
-- `--output <path|auto>` — output file path or auto-generate
-- `--strict` — enable strict validation
-- `--no-color` — disable terminal colors
-- `--verbose` — verbose output
-- First positional argument is the input `.stp` or `.step` file path
+**Coverage and mutation testing.** Coverage alone is gameable — an assertion-free test scores 100%.
+Mutation testing is the check that the tests actually constrain behaviour, so treat the Stryker
+score as the real number and coverage as a floor:
 
-### Run Tests
 ```powershell
-$env:DOTNET_CLI_HOME="$PWD\.dotnet_home"
-$env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE="1"
-dotnet run --project tests/StepParser.Tests/StepParser.Tests.csproj -c Debug --no-build
+dotnet test StepParser.slnx --collect:"XPlat Code Coverage"
+dotnet tool restore
+dotnet stryker
 ```
 
-Tests use a custom zero-dependency test runner (no xUnit or NUnit). Add new tests to the `tests` list in `tests/StepParser.Tests/Program.cs`.
+**Corpus sweep** — bulk-parses `.stp`/`.step` paths read from **stdin**, writing a CSV plus an
+exit-code histogram. It re-enters the ordinary single-file pipeline per file, so a sweep exercises
+exactly the code path a single invocation does:
 
-### Bulk File Processing (Sweep)
 ```powershell
 $files = (@(es.exe *.stp) + @(es.exe *.step)) | Sort-Object -Unique
-$files | dotnet run --project tests/StepParser.Tests/StepParser.Tests.csproj -c Debug --no-build -- --sweep .\step_sweep_results.csv
+$files | dotnet run --project src/StepParser/StepParser.csproj -c Debug --no-build -- --sweep .\step_sweep_results.csv
 ```
-
-This processes all STEP files and outputs a CSV with diagnostics for batch analysis.
 
 ## Architecture
 
-### Execution Pipeline
+### The parser never throws — it accumulates diagnostics
 
-The parser follows a three-phase pipeline, each producing structured output:
+This is the single most important invariant before editing anything under `Parser/` or `Lexer/`.
+`StepFileParser.Expect()` does **not** throw on a token mismatch: it appends a `ParseDiagnostic`
+and returns the offending token **without advancing the position**. Callers therefore continue with
+a token they did not ask for. Malformed input yields a populated `StepFile` plus diagnostics, never
+an exception — which is what lets sweep mode grind a whole corpus without aborting.
 
-1. **Tokenization** (`Lexer/Tokenizer.cs`) — Raw character-by-character tokenization with:
-   - Comment stripping (ISO 10303-21 `/*` and `//`)
-   - Source coordinate tracking (line, column)
-   - Escape sequence handling for strings
+A corollary: an unconsumed token can loop if you add a `while` that depends on `Expect` advancing.
+The existing loops all guard on `TokenKind.EndOfFile` or `EndSec` for this reason, and `Advance()`
+deliberately clamps at the last token rather than running off the end.
 
-2. **Lexing** (`Lexer/Lexer.cs`) — Converts raw tokens into semantic tokens with:
-   - STEP keyword recognition (HEADER, DATA, ENDSEC, etc.)
-   - Literal classification (strings, integers, floats, enums, references)
-   - Typed parameter parsing
+### One mutable diagnostics list threads through all three phases
 
-3. **Parsing** (`Parser/StepFileParser.cs`) — Recursive-descent parser that:
-   - Validates ISO-10303-21 file structure (ISO_OPEN → HEADER → DATA → ISO_CLOSE)
-   - Extracts HEADER entities (FILE_DESCRIPTION, FILE_NAME, FILE_SCHEMA, etc.)
-   - Parses DATA section entity instances and references
-   - Collects diagnostics (errors/warnings) during parsing
-   - Detects STEP edition from IMPLEMENTATION_LEVEL
+`StepParserCli.Run` creates a single `List<ParseDiagnostic>` and passes it by reference into
+`Tokenizer.TokenizeFile` → `Lexer.Lex` → `new StepFileParser(tokens, diagnostics)`. Each phase
+appends to it. Diagnostics from an earlier phase are therefore visible in a later phase's output,
+and `--phase tokens` still reports tokenizer-stage errors. Nothing clears or partitions this list.
 
-### Key Data Structures
+### Phases are early-exit, not separate entry points
 
-- **StepFile** — Root parse result containing header, entities, detected edition, and schema
-- **HeaderSection** — Ordered list of HEADER entities (name + parameter list)
-- **EntityInstance** — DATA section entity with ID, type, and parameters
-- **Parameter** — Typed parameter (string, int, float, enum, reference, or nested list)
-- **Token/RawToken** — Lexed token with kind, value, and source location
-- **ParseDiagnostic** — Error/warning with severity, location, and message
+`--phase tokens|lex|parse` runs the same linear function and returns early with a different payload
+type (`TokenizationResult` / `LexingResult` / `ParseResult`), all funnelled through the untyped
+`WriteResult(..., object payload, ...)`.
 
-### Output Formatters
+### JSON output goes through a hand-written projection, not reflection
 
-- **JsonFormatter** — Structured JSON output of parse results (default)
-- **TextFormatter** — Human-readable text summary for debugging
+`JsonFormatter` serializes `ParseResult` via `ParseResultJsonProjection.Create` and
+`ParameterJsonProjection.Create` (both in `Parser/ParseResult.cs`), which build anonymous objects
+with explicit camelCase keys and a `kind` discriminator per parameter variant. **Adding a property
+to `ParseResult` or a new `Parameter` subtype will not appear in JSON until you also update the
+projection**, and an unhandled `Parameter` case falls through to `{ kind = "unknown" }`, silently
+losing the value. `InvariantTests.EveryParameterVariantHasItsOwnJsonDiscriminator` walks the type
+hierarchy by reflection and fails if a variant is ever added without extending the projection —
+keep that test working rather than routing around it.
 
-### Semantic Layer
+Non-`ParseResult` payloads (the tokens/lex phases) bypass the projection and are reflected directly.
 
-**Ap242SemanticModel.cs** provides AP242-oriented analysis:
-- Extracts and summarizes HEADER information (application, origin, schema)
-- Classifies DATA entities as PMI/MBD-related
-- Maps STEP entity names to semantic categories
+### Logging is compile-time woven, not a runtime call
 
-## Project Structure
+`Logging/LogAttribute.cs` derives from `MethodBoundaryAspect.Fody.Attributes.OnMethodBoundaryAspect`.
+Fody rewrites the IL at build time so every `[Log]`-decorated method gets entry/exit/exception hooks
+forwarding to Serilog through `StepLogger`. All hooks return immediately when `StepLogger.IsEnabled`
+is false, so cost is near-zero unless `--log` is passed. `[Log]` marks the CLI entry point, both
+tokenizer entry points, `Lexer.Lex`, and the top-level parse methods.
 
-```
-src/StepParser/
-├── Cli/                    # CLI option parsing and orchestration
-│   ├── CliOptions.cs
-│   ├── ExecutionPhase.cs   # tokens | lex | parse
-│   ├── OutputFormat.cs
-│   └── StepParserCli.cs    # Main entry point
-├── Lexer/                  # Tokenization and lexing
-│   ├── Tokenizer.cs        # Raw character → RawToken
-│   ├── Lexer.cs            # RawToken → Token (semantic)
-│   ├── Token.cs
-│   ├── RawToken.cs
-│   └── TokenKind.cs
-├── Parser/                 # Parsing and semantic analysis
-│   ├── StepFileParser.cs   # Main parser logic
-│   ├── StepFile.cs
-│   ├── HeaderSection.cs
-│   ├── EntityInstance.cs
-│   ├── Parameter.cs
-│   ├── ParseResult.cs
-│   ├── PhaseResults.cs
-│   └── Ap242SemanticModel.cs
-├── Output/                 # Output formatting
-│   ├── IOutputFormatter.cs
-│   ├── JsonFormatter.cs
-│   └── TextFormatter.cs
-├── Diagnostics/            # Error/warning reporting
-│   ├── ParseDiagnostic.cs
-│   └── DiagnosticSeverity.cs
-├── Program.cs              # Entry point
-└── GlobalUsings.cs
+Consequences worth knowing:
 
-tests/StepParser.Tests/
-├── Program.cs              # Custom test runner
-├── StepSample.cs           # Test data
-└── GlobalUsings.cs
-```
+- Weaving happens in the `StepParser` assembly only. A `[Log]` attribute applied inside the test
+  project is inert, so aspect behaviour is tested by driving the real decorated methods.
+- `StepParserCli.Run` calls `StepLogger.Configure` from its own options, so a logger configured by
+  a caller beforehand is overwritten. Switch logging on with `--log`/`--log-file`, not externally.
+- Serilog's file sink holds an exclusive handle until disposed. `StepLogger.Configure` disposes the
+  previous logger, and `Program.Main` calls `StepLogger.CloseAndFlush()` in a `finally` — without
+  that the last buffered lines are lost on exit.
 
-## Configuration & Build Details
+### The AP242 semantic model runs on every parse
 
-- **Target Framework**: `net10.0` — requires .NET 10 SDK installed offline
-- **Nullable Strict**: Enabled across all projects
-- **Implicit Usings**: Disabled (explicit namespaces required)
-- **Latest C# LangVersion**: Uses cutting-edge C# features
-- **No External Dependencies**: Zero NuGet packages (offline-compatible)
-- **Solution Format**: Modern `.slnx` (solution explorer format)
+`Parser/Ap242SemanticModel.cs` is the largest file in the repo (~1080 lines): thirteen commented
+"Module" blocks of `HashSet<string>` entity-name catalogs (geometry, topology, representation,
+product structure, assembly, units, PMI dimensions/tolerances/datums/shape aspects/presentation,
+materials, kinematics) plus `Ap242SemanticModelBuilder.Build(StepFile)`.
 
-Environment variables required for offline builds:
-- `DOTNET_CLI_HOME="$PWD\.dotnet_home"` — local NuGet cache
-- `DOTNET_SKIP_FIRST_TIME_EXPERIENCE="1"` — skip telemetry and welcome
+`ParseResult.FromStepFile` calls `Build`, so the summary reaches both the JSON `semantics` section
+and the text `AP242: … | MBD: …` line. (It was unreachable dead code until it was wired in; the
+`DocumentationContractTests` guard against it silently becoming dead again.)
 
-## Testing Notes
+Two properties of `Build` that look like bugs and are not accidental:
 
-The test framework is custom-built (zero dependencies) and runs as a console app with explicit test methods. When adding tests:
+- `geometry` and `representation` counters use substring matching on the entity name
+  (`Contains("CURVE")`, `Contains("CONTEXT")`, …), not the curated catalogs. Only `pmi` and `gdt`
+  are catalog-driven.
+- `HasModelBasedDefinition` requires *both* an AP242 schema and PMI/GD&T content.
 
-1. Define the test method in `tests/StepParser.Tests/Program.cs`
-2. Add it to the `tests` list in `Main()`
-3. Exceptions are caught and reported as failures
-4. Use the `--sweep` mode for corpus analysis across many STEP files
+**Known defect, deliberately pinned by a test:** `BuildDimension` scans every `MEASURE_WITH_UNIT`
+in the file rather than following references from the dimension, so a file with two dimensions gives
+both the same values. `Ap242SemanticModelTests.KnownLimitation_MultipleDimensionsShareGloballyScannedMeasures`
+documents this. When it is fixed that test should fail and be rewritten to assert per-dimension
+resolution.
 
-Current test status:
-- Local parser tests: **passing**
-- Machine sweep: **834 files processed**, 808 accepted, 26 rejected with diagnostics
-- Remaining failures: Malformed/non-Part-21 inputs and some AP242/PMI edge cases
+## Exit Codes
 
-## Common Development Tasks
+The CLI's machine-readable contract; `--sweep` groups its histogram on these.
 
-### Running a single test
-Add a standalone test call:
-```powershell
-dotnet run --project tests/StepParser.Tests/StepParser.Tests.csproj -c Debug --no-build
-```
-Then modify the test list in `Program.cs` to run only the test you want.
+| Code | Meaning |
+|---|---|
+| 0 | clean |
+| 1 | input file not found |
+| 2 | errors present, unhandled exception, or any warning under `--strict` |
+| 3 | warnings only |
+| 4 | bad arguments |
 
-### Analyzing parser failures
-Use the `--verbose` flag on the CLI:
-```powershell
-dotnet run --project src/StepParser/StepParser.csproj -c Debug --no-build -- --verbose --phase parse .\failing_file.stp
-```
+`--strict` also writes a `strict: N warning(s) promoted to error(s) — exit 2` line to stderr so the
+promotion is observable without reading the exit code.
 
-### Checking output format
-Run with both formatters to compare:
-```powershell
-dotnet run --project src/StepParser/StepParser.csproj -c Debug --no-build -- --format json .\sample.stp
-dotnet run --project src/StepParser/StepParser.csproj -c Debug --no-build -- --format text .\sample.stp
-```
+## Testing
 
-### Debugging tokenizer issues
-Use `--phase tokens` to see raw token stream, then `--phase lex` to see lexed tokens:
-```powershell
-dotnet run --project src/StepParser/StepParser.csproj -c Debug --no-build -- --phase tokens .\sample.stp
-```
+`dotnet test`, xUnit, in `tests/StepParser.Tests`. Parallelisation is disabled assembly-wide
+(`GlobalUsings.cs`) because `StepLogger` is process-wide static state.
+
+Beyond conventional per-unit tests, three suites exist specifically to catch failures that ordinary
+tests cannot see. Understand what each is for before modifying it:
+
+- **`InvariantTests`** — properties rather than examples: the exit code cannot contradict the
+  diagnostics, `stats.entityCount` cannot disagree with the emitted entity list, text and JSON must
+  report the same diagnostic count, output must be byte-identical across runs, and garbage input
+  must never be reported as clean. These fail when a change makes the tool *lie about its own
+  result*, which example-based tests happily miss.
+- **`DocumentationContractTests`** — parse `README.md` and this file and check the claims against
+  the running program: every documented flag is accepted, every advertised flag is documented, every
+  documented exit code is reachable, and advertised features actually appear in the output. Added
+  after two real drifts: an AP242 layer nothing called, and tail-remark comment support the
+  tokenizer never had.
+- **`GoldenCorpusTests`** — checked-in `.stp` fixtures with checked-in expected JSON. A behaviour
+  change must be re-blessed explicitly rather than silently absorbed.
+
+If a documentation-contract test fails, the default fix is to correct the **code or the claim**,
+not to loosen the assertion.
+
+### Measured state
+
+355 tests. **100.00% line coverage, 98.47% branch, 93.83% mutation score** (Stryker, 1372 killed /
+72 timeout / 52 survived).
+
+Branch coverage is not 100% because six guards are provably unreachable. They are listed here so
+nobody spends an afternoon on them — and so nobody raises the number by deleting a guard:
+
+| Location | Guard | Why unreachable |
+|---|---|---|
+| `StepFileParser.cs` `Current` | `_position < _tokens.Count ? … : _tokens[^1]` | `Advance()` clamps at `Count - 1` |
+| `Tokenizer.cs` `Peek` | `index >= 0 && …` | every caller passes `index + 1` with `index >= 0` |
+| `LogAttribute.cs` ×3 | `args.Method.DeclaringType?.Name ?? "?"` | a woven method always has a declaring type |
+| `LogAttribute.cs` `RenderValue` | `value.ToString() ?? "?"` | no decorated method's argument type returns null from `ToString` |
+| `SweepRunner.cs` `FirstLine` | `reader.ReadLine() ?? string.Empty` | empty and whitespace input return earlier |
+
+The surviving mutants are almost entirely **log-message** mutations (deleting a `StepLogger.Debug`
+call or blanking its template changes no observable behaviour) plus the equivalent mutants above.
+One is genuinely unkillable without a flaky assertion: `SweepRunner`'s `TOP_SLOW` ordering depends
+on measured wall-clock durations.
+
+The AP242 entity-name catalogs are excluded from mutation with a `// Stryker disable all` marker —
+they are reference data, and mutating ~600 string literals would swamp the score with mutants no
+sane test could kill. `Build()` and its helpers below the `// Stryker restore all` marker *are*
+mutated.
+
+## Dependencies & Build Configuration
+
+- **Target `net10.0`**, `Nullable=enable`, `ImplicitUsings=disable` (a short `GlobalUsings.cs` per
+  project supplies `System`, `System.Collections.Generic`, `System.IO`, `System.Linq`),
+  `LangVersion=latest`. Solution is the XML `.slnx` format.
+- `src/StepParser` references Fody (build-only, `PrivateAssets=all`), MethodBoundaryAspect.Fody
+  (weaver *and* runtime base types), Serilog, Serilog.Sinks.Console, Serilog.Sinks.File.
+  `--ignore-failed-sources` tolerates a dead feed, not an empty package cache.
+- `tests/StepParser.Tests` references xUnit, Microsoft.NET.Test.Sdk, xunit.runner.visualstudio and
+  coverlet.collector.
+- `src/StepParser` grants `InternalsVisibleTo("StepParser.Tests")` so `SweepRunner` helpers and the
+  JSON projections can be tested without widening the public API.
+
+## Parser Behaviour Worth Knowing
+
+- **Comments:** `/* … */` blocks only. Tail remarks are not implemented — a stray `/` produces an
+  `Unrecognized character` warning. Do not document otherwise; a test enforces this.
+- **Complex-entity recovery.** ISO 10303-21 §11.3.3 requires `#id=(TYPE1(...)TYPE2(...));`. Files
+  that omit the outer parens are recovered into an `EntityInstance` with `Components`, emitting a
+  `Warning` whose message cites `11.3.3` — asserted verbatim by a regression test.
+- **`EntityInstance` is either/or.** Simple ⇒ `Name` + `Parameters`, `Components == null`. Complex ⇒
+  `Name == null`, empty `Parameters`, populated `Components`. `ParseResult.FromStepFile` counts
+  entity-type frequencies per *component* for complex instances.
+- **Duplicate `#id` silently overwrites** — `ParseDataSection` assigns into a `Dictionary<int, …>`.
+- **`ANCHOR` / `REFERENCE` / `SIGNATURE` sections are skipped wholesale**, not parsed.
+- **Edition detection** reads only the first character of `IMPLEMENTATION_LEVEL`.
+- **Unicode `\X2\` / `\X4\` escapes** are decoded in the lexer, as is `''` → `'`.
